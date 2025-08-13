@@ -38,23 +38,23 @@ export async function mockInterview(input: MockInterviewInput): Promise<MockInte
 const prompt = ai.definePrompt({
   name: 'mockInterviewerPrompt',
   input: {schema: MockInterviewInputSchema},
-  prompt: `You are an AI interviewer conducting a mock interview for the role of {{jobRole}} at the {{experienceLevel}}.
+  prompt: `You are an AI interviewer conducting a mock interview for the role of {{jobRole}} ({{experienceLevel}}).
 
-Your goal is to ask relevant interview questions and provide constructive feedback to help the candidate improve their interviewing skills.
+Your goal is to ask relevant interview questions and provide constructive feedback.
 
-You must always follow this process:
+Follow this process:
 1.  Ask one question at a time.
 2.  If the user provides a response, give feedback on that response.
 3.  After giving feedback (or if it's the first turn), ask the next question.
-4.  Maintain a running context of the interview.
+4.  Maintain a running context of the interview (questions asked, topics covered).
 
 **Response Format:**
-You MUST structure your response using the following template. Do not include any other text or formatting.
+You MUST structure your response using the following template. Do not include any other text or formatting. Start with <response> and end with </response>.
 
 <response>
-<question>Your next interview question goes here.</question>
-{{#if userResponse}}<feedback>Your feedback on the user's response goes here.</feedback>{{/if}}
-<interview_context>A summary of the interview so far, including questions asked and topics covered, goes here.</interview_context>
+  <question>Your next interview question goes here.</question>
+  {{#if userResponse}}<feedback>Your feedback on the user's response goes here.</feedback>{{/if}}
+  <interview_context>A summary of the interview so far goes here.</interview_context>
 </response>
 
 **Interview State:**
@@ -63,7 +63,7 @@ You MUST structure your response using the following template. Do not include an
 Previous Context:
 {{{previousInterviewContext}}}
 {{else}}
-This is the beginning of the interview. Please ask your first question.
+This is the beginning of the interview. Ask your first question.
 {{/if}}
 
 {{#if userResponse}}
@@ -82,19 +82,25 @@ const mockInterviewFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
+    const responseText = output?.text ?? '';
 
-    const questionMatch = output!.text.match(/<question>(.*?)<\/question>/s);
-    const feedbackMatch = output!.text.match(/<feedback>(.*?)<\/feedback>/s);
-    const interviewContextMatch = output!.text.match(/<interview_context>(.*?)<\/interview_context>/s);
+    const questionMatch = responseText.match(/<question>([\s\S]*?)<\/question>/);
+    const feedbackMatch = responseText.match(/<feedback>([\s\S]*?)<\/feedback>/);
+    const interviewContextMatch = responseText.match(/<interview_context>([\s\S]*?)<\/interview_context>/);
     
-    const question = questionMatch ? questionMatch[1].trim() : 'I am having trouble coming up with the next question. Can you please try again?';
+    const question = questionMatch ? questionMatch[1].trim() : 'I am having trouble coming up with the next question. Could you try responding again?';
     const feedback = feedbackMatch ? feedbackMatch[1].trim() : undefined;
-    const interviewContext = interviewContextMatch ? interviewContextMatch[1].trim() : 'No context available.';
+    let interviewContext = interviewContextMatch ? interviewContextMatch[1].trim() : 'No context available.';
+
+    // Ensure context is passed for the next turn
+    if (!interviewContext || interviewContext === 'No context available.') {
+      interviewContext = input.previousInterviewContext || `Interview for ${input.jobRole} (${input.experienceLevel}) started.`;
+    }
 
     return {
       question: question,
       feedback: feedback,
-      interviewContext: interviewContext
+      interviewContext: interviewContext,
     };
   }
 );
