@@ -1,8 +1,10 @@
+"use client";
+
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -13,12 +15,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth, AuthProvider } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 
-export default function DashboardLayout({
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-card md:block">
@@ -30,8 +59,8 @@ export default function DashboardLayout({
             <SidebarNav />
           </div>
           <div className="mt-auto p-4 border-t">
-             <Button variant="ghost" className="w-full justify-start" asChild>
-               <Link href="/"><LogOut className="mr-2 h-4 w-4" />Logout</Link>
+             <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+               <LogOut className="mr-2 h-4 w-4" />Logout
             </Button>
           </div>
         </div>
@@ -57,8 +86,8 @@ export default function DashboardLayout({
                   <SidebarNav />
                 </div>
                 <div className="mt-auto p-4 border-t">
-                    <Button variant="ghost" className="w-full justify-start" asChild>
-                      <Link href="/"><LogOut className="mr-2 h-4 w-4" />Logout</Link>
+                    <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />Logout
                     </Button>
                 </div>
             </SheetContent>
@@ -70,7 +99,7 @@ export default function DashboardLayout({
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <Avatar>
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <span className="sr-only">Toggle user menu</span>
               </Button>
@@ -81,7 +110,7 @@ export default function DashboardLayout({
               <DropdownMenuItem asChild><Link href="/dashboard/settings">Settings</Link></DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
@@ -90,5 +119,17 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AuthProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </AuthProvider>
   );
 }
