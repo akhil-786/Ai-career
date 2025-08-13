@@ -1,9 +1,16 @@
+
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Briefcase, FileText, Target, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { useAuth } from "@/hooks/use-auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useEffect, useState } from "react";
 
 const jobTrendsData = [
     { name: "AI Engineer", jobs: 1200 },
@@ -13,15 +20,42 @@ const jobTrendsData = [
     { name: "Product Manager", jobs: 820 },
 ]
 
+type UserProfile = {
+  name?: string;
+  email?: string;
+  skills?: string;
+  experience?: string;
+  interests?: string;
+};
+
+
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    async function fetchUserProfile() {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data() as UserProfile);
+        }
+      }
+    }
+    fetchUserProfile();
+  }, [user]);
+
+  const skillCount = userProfile?.skills?.split(',').filter(s => s.trim() !== '').length || 0;
+
   return (
     <>
-        <h1 className="text-2xl font-semibold">Welcome back!</h1>
+        <h1 className="text-2xl font-semibold">Welcome back, {userProfile?.name || 'User'}!</h1>
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Career Readiness
+                Profile Completion
               </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -33,14 +67,14 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Skills Mastered
+                Skills Logged
               </CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12 / 20</div>
+              <div className="text-2xl font-bold">{skillCount}</div>
               <p className="text-xs text-muted-foreground">
-                +2 since last week
+                From your profile
               </p>
             </CardContent>
           </Card>
@@ -52,9 +86,9 @@ export default function Dashboard() {
               <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3</div>
+              <div className="text-2xl font-bold">0</div>
                <p className="text-xs text-muted-foreground">
-                Based on your profile
+                Run career match to find paths
               </p>
             </CardContent>
           </Card>
@@ -66,7 +100,7 @@ export default function Dashboard() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">85</div>
+              <div className="text-2xl font-bold">N/A</div>
                <p className="text-xs text-muted-foreground">
                 From last resume scan
               </p>
@@ -116,11 +150,11 @@ export default function Dashboard() {
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
                   <div className="grid gap-1">
-                    <p className="text-sm font-medium leading-none">Update Resume</p>
+                    <p className="text-sm font-medium leading-none">Update Profile</p>
                     <p className="text-sm text-muted-foreground">Add your latest project.</p>
                   </div>
                    <Button asChild variant="outline" size="sm" className="ml-auto">
-                    <Link href="/dashboard/resume-analyzer">Update</Link>
+                    <Link href="/dashboard/profile">Update</Link>
                   </Button>
                </div>
                <div className="flex items-center gap-4">
@@ -128,11 +162,11 @@ export default function Dashboard() {
                     <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                   <div className="grid gap-1">
-                    <p className="text-sm font-medium leading-none">Learn a new skill</p>
-                    <p className="text-sm text-muted-foreground">'Advanced React Patterns'.</p>
+                    <p className="text-sm font-medium leading-none">Find your Career</p>
+                    <p className="text-sm text-muted-foreground">Get AI-powered recommendations.</p>
                   </div>
                    <Button asChild variant="outline" size="sm" className="ml-auto">
-                    <Link href="/dashboard/learning-roadmap">Learn</Link>
+                    <Link href="/dashboard/career-match">Start</Link>
                   </Button>
                </div>
             </CardContent>

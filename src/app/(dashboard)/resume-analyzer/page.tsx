@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import { analyzeResume, AnalyzeResumeOutput } from '@/ai/flows/resume-analyzer';
@@ -8,6 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2, UploadCloud, FileText, BrainCircuit, GraduationCap, Download, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/hooks/use-auth';
+import { doc, setDoc } from "firebase/firestore";
+import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 function fileToDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,6 +30,9 @@ export default function ResumeAnalyzerPage() {
   const [analysis, setAnalysis] = useState<AnalyzeResumeOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -42,6 +50,14 @@ export default function ResumeAnalyzerPage() {
       });
       return;
     }
+     if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "You must be logged in to analyze a resume.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     setAnalysis(null);
@@ -50,6 +66,21 @@ export default function ResumeAnalyzerPage() {
       const resumeDataUri = await fileToDataUri(file);
       const result = await analyzeResume({ resumeDataUri });
       setAnalysis(result);
+      
+      // Save analysis to user's profile
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, {
+          skills: result.skills.join(', '),
+          experience: result.experience,
+      }, { merge: true });
+
+      toast({
+        title: "Analysis Complete",
+        description: "Your resume has been analyzed and your profile has been updated.",
+      });
+
+      router.push('/dashboard/profile');
+
     } catch (error) {
       console.error('Error analyzing resume:', error);
       toast({
@@ -67,7 +98,7 @@ export default function ResumeAnalyzerPage() {
       <Card>
         <CardHeader>
           <CardTitle>Resume Analyzer</CardTitle>
-          <CardDescription>Upload your resume (PDF/DOCX) to extract skills, experience, and education.</CardDescription>
+          <CardDescription>Upload your resume (PDF/DOCX). We'll extract your skills and experience and automatically update your profile.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent>
@@ -77,7 +108,7 @@ export default function ResumeAnalyzerPage() {
                 <Input id="resume" type="file" accept=".pdf,.docx,.txt" onChange={handleFileChange} />
                 <Button type="submit" disabled={isLoading || !file}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                  Analyze
+                  Analyze & Update Profile
                 </Button>
               </div>
             </div>
@@ -88,13 +119,13 @@ export default function ResumeAnalyzerPage() {
       {isLoading && (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2">Analyzing your resume...</p>
+          <p className="ml-2">Analyzing your resume and updating profile...</p>
         </div>
       )}
 
       {analysis && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><FileText /> Resume Content</CardTitle>
             </CardHeader>
@@ -116,29 +147,6 @@ export default function ResumeAnalyzerPage() {
                 <p className="text-muted-foreground mt-2 whitespace-pre-wrap">{analysis.education}</p>
               </div>
             </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Analysis Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex justify-between font-medium"><span>ATS Score</span><span>85%</span></div>
-                <Progress value={85} />
-                <p className="text-xs text-muted-foreground">Good score! Minor improvements suggested.</p>
-              </div>
-               <div className="space-y-1">
-                <h4 className="font-semibold">Missing Keywords</h4>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  <span className="bg-destructive/10 text-destructive text-xs font-medium px-2 py-0.5 rounded-full">CI/CD</span>
-                  <span className="bg-destructive/10 text-destructive text-xs font-medium px-2 py-0.5 rounded-full">Kubernetes</span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full"><Download className="mr-2 h-4 w-4" /> Download Improved Resume</Button>
-            </CardFooter>
           </Card>
         </div>
       )}

@@ -1,15 +1,16 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, FileText, Briefcase, MessageSquare, Target, Settings, BookOpen, TrendingUp } from "lucide-react";
+import { Home, FileText, Briefcase, MessageSquare, Target, Settings, User, TrendingUp } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard/profile", label: "User Profile", icon: User },
   { href: "/dashboard/resume-analyzer", label: "Resume Analyzer", icon: FileText },
   { href: "/dashboard/career-match", label: "Career Match", icon: Briefcase },
-  { href: "/dashboard/learning-roadmap", label: "Learning Roadmap", icon: BookOpen },
   { href: "/dashboard/mock-interview", label: "Mock Interview", icon: MessageSquare },
   { href: "/dashboard/insights-trends", label: "Insights & Trends", icon: TrendingUp },
   { href: "/dashboard/progress-tracker", label: "Progress Tracker", icon: Target },
