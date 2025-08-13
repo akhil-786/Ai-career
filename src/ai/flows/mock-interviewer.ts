@@ -38,24 +38,16 @@ export async function mockInterview(input: MockInterviewInput): Promise<MockInte
 const prompt = ai.definePrompt({
   name: 'mockInterviewerPrompt',
   input: {schema: MockInterviewInputSchema},
+  output: {schema: MockInterviewOutputSchema},
   prompt: `You are an AI interviewer conducting a mock interview for the role of {{jobRole}} ({{experienceLevel}}).
 
 Your goal is to ask relevant interview questions and provide constructive feedback.
 
 Follow this process:
 1.  Ask one question at a time.
-2.  If the user provides a response, give feedback on that response.
-3.  After giving feedback (or if it's the first turn), ask the next question.
-4.  Maintain a running context of the interview (questions asked, topics covered).
-
-**Response Format:**
-You MUST structure your response using the following template. Do not include any other text or formatting. Start with <response> and end with </response>.
-
-<response>
-  <question>Your next interview question goes here.</question>
-  {{#if userResponse}}<feedback>Your feedback on the user's response goes here.</feedback>{{/if}}
-  <interview_context>A summary of the interview so far goes here.</interview_context>
-</response>
+2.  If the user provides a response, provide feedback on that response in the 'feedback' field.
+3.  After giving feedback (or if it's the first turn), ask the next question in the 'question' field.
+4.  Maintain a running context of the interview (questions asked, topics covered) in the 'interviewContext' field.
 
 **Interview State:**
 
@@ -82,25 +74,13 @@ const mockInterviewFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    const responseText = output?.text ?? '';
-
-    const questionMatch = responseText.match(/<question>([\s\S]*?)<\/question>/);
-    const feedbackMatch = responseText.match(/<feedback>([\s\S]*?)<\/feedback>/);
-    const interviewContextMatch = responseText.match(/<interview_context>([\s\S]*?)<\/interview_context>/);
-    
-    const question = questionMatch ? questionMatch[1].trim() : 'I am having trouble coming up with the next question. Could you try responding again?';
-    const feedback = feedbackMatch ? feedbackMatch[1].trim() : undefined;
-    let interviewContext = interviewContextMatch ? interviewContextMatch[1].trim() : 'No context available.';
-
-    // Ensure context is passed for the next turn
-    if (!interviewContext || interviewContext === 'No context available.') {
-      interviewContext = input.previousInterviewContext || `Interview for ${input.jobRole} (${input.experienceLevel}) started.`;
+    if (!output) {
+      // This case should be rare with structured output, but it's good practice.
+      return {
+        question: 'I am having trouble coming up with the next question. Could you try responding again?',
+        interviewContext: input.previousInterviewContext || 'Interview context lost.',
+      };
     }
-
-    return {
-      question: question,
-      feedback: feedback,
-      interviewContext: interviewContext,
-    };
+    return output;
   }
 );
