@@ -157,7 +157,7 @@ export default function MockInterviewPage() {
                                 <AvatarFallback>AI</AvatarFallback>
                             </Avatar>
                         )}
-                        <div className={cn("max-w-[75%] rounded-lg p-3", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                        <div className={cn("max-w-[75%] rounded-lg p-3 break-words", message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                             <p className="text-sm">{message.content}</p>
                             {message.feedback && (
                                 <div className="mt-3 border-t pt-3 border-accent/50">
