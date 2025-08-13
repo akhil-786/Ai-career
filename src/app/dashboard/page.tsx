@@ -26,6 +26,7 @@ type UserProfile = {
   skills?: string;
   experience?: string;
   interests?: string;
+  atsScore?: number;
 };
 
 
@@ -47,6 +48,14 @@ export default function Dashboard() {
   }, [user]);
 
   const skillCount = userProfile?.skills?.split(',').filter(s => s.trim() !== '').length || 0;
+  const profileCompletion = [
+    userProfile?.name,
+    userProfile?.email,
+    userProfile?.skills,
+    userProfile?.experience,
+    userProfile?.interests
+  ].filter(Boolean).length;
+  const profileCompletionPercentage = Math.round((profileCompletion / 5) * 100);
 
   return (
     <>
@@ -60,8 +69,8 @@ export default function Dashboard() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">78%</div>
-              <Progress value={78} className="mt-2" />
+              <div className="text-2xl font-bold">{profileCompletionPercentage}%</div>
+              <Progress value={profileCompletionPercentage} className="mt-2" />
             </CardContent>
           </Card>
           <Card>
@@ -100,7 +109,7 @@ export default function Dashboard() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">N/A</div>
+              <div className="text-2xl font-bold">{userProfile?.atsScore || 'N/A'}</div>
                <p className="text-xs text-muted-foreground">
                 From last resume scan
               </p>
@@ -130,7 +139,7 @@ export default function Dashboard() {
               <CardTitle>This Week's Action Plan</CardTitle>
               <CardDescription>
                 Stay on track with these personalized suggestions.
-              </CardDescription>
+              </Description>
             </CardHeader>
             <CardContent className="grid gap-4">
                <div className="flex items-center gap-4">

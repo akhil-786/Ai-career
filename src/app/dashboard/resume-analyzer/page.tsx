@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, UploadCloud, FileText, BrainCircuit, GraduationCap, Download, Briefcase } from 'lucide-react';
+import { Loader2, UploadCloud, FileText, BrainCircuit, GraduationCap, Briefcase, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/use-auth';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase';
@@ -29,6 +28,7 @@ export default function ResumeAnalyzerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<AnalyzeResumeOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<'update' | 'score' | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
@@ -37,11 +37,11 @@ export default function ResumeAnalyzerPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFile(e.target.files[0]);
+      setAnalysis(null);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleAnalyze = async (action: 'update' | 'score') => {
     if (!file) {
       toast({
         title: "No file selected",
@@ -60,26 +60,42 @@ export default function ResumeAnalyzerPage() {
     }
 
     setIsLoading(true);
+    setLoadingAction(action);
     setAnalysis(null);
 
     try {
       const resumeDataUri = await fileToDataUri(file);
-      const result = await analyzeResume({ resumeDataUri });
+      const result = await analyzeResume({ 
+        resumeDataUri, 
+        calculateAtsScore: action === 'score' 
+      });
       setAnalysis(result);
       
-      // Save analysis to user's profile
       const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-          skills: result.skills.join(', '),
-          experience: result.experience,
-      }, { merge: true });
 
-      toast({
-        title: "Analysis Complete",
-        description: "Your resume has been analyzed and your profile has been updated.",
-      });
+      if (action === 'update') {
+        await setDoc(userRef, {
+            skills: result.skills.join(', '),
+            experience: result.experience,
+        }, { merge: true });
 
-      router.push('/dashboard/profile');
+        toast({
+          title: "Analysis Complete",
+          description: "Your resume has been analyzed and your profile has been updated.",
+        });
+
+        router.push('/dashboard/profile');
+      } else if (action === 'score') {
+         if (result.atsScore) {
+           await setDoc(userRef, {
+             atsScore: result.atsScore,
+           }, { merge: true });
+         }
+         toast({
+           title: "ATS Score Calculated",
+           description: "Your resume's ATS score has been calculated.",
+         });
+      }
 
     } catch (error) {
       console.error('Error analyzing resume:', error);
@@ -90,6 +106,7 @@ export default function ResumeAnalyzerPage() {
       });
     } finally {
       setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -98,36 +115,57 @@ export default function ResumeAnalyzerPage() {
       <Card>
         <CardHeader>
           <CardTitle>Resume Analyzer</CardTitle>
-          <CardDescription>Upload your resume (PDF/DOCX). We'll extract your skills and experience and automatically update your profile.</CardDescription>
+          <CardDescription>Upload your resume (PDF/DOCX/TXT) to extract insights, update your profile, or get an ATS score.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent>
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="resume">Upload Resume</Label>
-              <div className="flex gap-2">
-                <Input id="resume" type="file" accept=".pdf,.docx,.txt" onChange={handleFileChange} />
-                <Button type="submit" disabled={isLoading || !file}>
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                  Analyze & Update Profile
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </form>
+        <CardContent>
+          <div className="grid w-full max-w-lg items-center gap-2">
+            <Label htmlFor="resume">Upload Resume</Label>
+            <Input id="resume" type="file" accept=".pdf,.docx,.txt" onChange={handleFileChange} />
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-4">
+            <Button onClick={() => handleAnalyze('score')} disabled={isLoading || !file}>
+              {loadingAction === 'score' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+              Analyze & Get ATS Score
+            </Button>
+            <Button onClick={() => handleAnalyze('update')} disabled={isLoading || !file} variant="secondary">
+              {loadingAction === 'update' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              Analyze & Update Profile
+            </Button>
+        </CardFooter>
       </Card>
 
       {isLoading && (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2">Analyzing your resume and updating profile...</p>
+          <p className="ml-2">Analyzing your resume...</p>
         </div>
       )}
 
       {analysis && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-3">
+        <div className="grid gap-6">
+          {analysis.atsScore !== undefined && analysis.atsSuggestions && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Star /> ATS Score & Suggestions
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div>
+                        <p className="text-6xl font-bold text-primary">{analysis.atsScore}</p>
+                        <p className="text-muted-foreground">Out of 100</p>
+                    </div>
+                     <div>
+                        <h3 className="font-semibold">Improvement Suggestions</h3>
+                        <p className="text-muted-foreground mt-2 whitespace-pre-wrap">{analysis.atsSuggestions}</p>
+                    </div>
+                </CardContent>
+            </Card>
+          )}
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><FileText /> Resume Content</CardTitle>
+              <CardTitle className="flex items-center gap-2"><FileText /> Extracted Content</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
