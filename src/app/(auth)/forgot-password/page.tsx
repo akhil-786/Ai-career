@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="text-center text-sm">
+        <CardFooter className="justify-center text-sm">
            <Link href="/login" className="underline flex items-center mx-auto">
              <ArrowLeft className="mr-1 h-3 w-3" />
             Back to Login

@@ -52,47 +52,31 @@ export default function LoginPage() {
     },
   });
 
-  const resendVerificationEmail = async () => {
-      try {
-          if(auth.currentUser){
-            const actionCodeSettings = {
-                url: `${window.location.origin}/login`,
-                handleCodeInApp: true,
-            };
-            await sendEmailVerification(auth.currentUser, actionCodeSettings);
-            toast({
-                title: "Verification Email Sent",
-                description: "A new verification link has been sent to your email address.",
-            });
-          }
-      } catch (error: any) {
-          toast({
-              title: "Error Sending Email",
-              description: error.message,
-              variant: "destructive",
-          });
-      }
-  };
-
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       
       if (userCredential.user && !userCredential.user.emailVerified) {
+         // Sign out the user because their email is not verified
          await auth.signOut();
+         
          toast({
             title: "Email Not Verified",
             description: "Please verify your email before logging in. A new verification link has been sent.",
             variant: "destructive",
          });
+         
          const actionCodeSettings = {
             url: `${window.location.origin}/login`,
             handleCodeInApp: true,
          };
+         // Send a new verification email
          await sendEmailVerification(userCredential.user, actionCodeSettings);
+
+         // Redirect to a dedicated page that explains the situation
          router.push('/verify-email');
+         setIsLoading(false);
          return;
       }
 
@@ -101,6 +85,7 @@ export default function LoginPage() {
         description: "Welcome back!",
       });
       router.push("/dashboard");
+
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -177,7 +162,7 @@ export default function LoginPage() {
                     </div>
                     <FormControl>
                       <div className="relative">
-                        <Input type={showPassword ? 'text' : 'password'} {...field} />
+                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
                         <Button 
                           type="button" 
                           variant="ghost" 
@@ -185,7 +170,7 @@ export default function LoginPage() {
                           className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
                           onClick={() => setShowPassword(prev => !prev)}
                         >
-                          {showPassword ? <EyeOff /> : <Eye />}
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </FormControl>

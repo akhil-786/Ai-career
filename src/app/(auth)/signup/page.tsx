@@ -215,7 +215,7 @@ export default function SignupPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                        <div className="relative">
-                        <Input type={showPassword ? 'text' : 'password'} {...field} />
+                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
                         <Button 
                           type="button" 
                           variant="ghost" 
@@ -223,7 +223,7 @@ export default function SignupPage() {
                           className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
                           onClick={() => setShowPassword(prev => !prev)}
                         >
-                          {showPassword ? <EyeOff /> : <Eye />}
+                          {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
                         </Button>
                       </div>
                     </FormControl>

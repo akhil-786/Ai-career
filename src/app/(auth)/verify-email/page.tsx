@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/firebase";
-import { sendEmailVerification } from "firebase/auth";
+import { sendEmailVerification, signOut } from "firebase/auth";
 import { Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function VerifyEmailPage() {
@@ -36,6 +36,7 @@ export default function VerifyEmailPage() {
             title: "Email Verified!",
             description: "You can now log in.",
           });
+          await signOut(auth); // Sign out to force re-login
           router.push("/login");
         }
       }
@@ -71,7 +72,7 @@ export default function VerifyEmailPage() {
     } else {
         toast({
           title: "Not Logged In",
-          description: "Please log in to resend the verification email.",
+          description: "Please sign up or log in to resend the verification email.",
           variant: "destructive",
         });
         router.push("/login");
