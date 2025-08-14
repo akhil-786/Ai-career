@@ -5,7 +5,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LogOut, User, Loader2 } from "lucide-react";
+import { Menu, LogOut, User, Loader2, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { useTheme } from "next-themes";
 
 function DashboardLayoutContent({
   children,
@@ -29,6 +30,7 @@ function DashboardLayoutContent({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -110,6 +112,15 @@ function DashboardLayoutContent({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild><Link href="/dashboard/settings">Settings</Link></DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuSeparator />
+               <DropdownMenuItem onClick={() => setTheme("light")}>
+                <Sun className="mr-2 h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
