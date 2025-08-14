@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Chrome, Linkedin, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Chrome, Linkedin, Loader2, CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/shared/logo";
 import { useForm, useWatch } from "react-hook-form";
@@ -91,6 +91,7 @@ export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -213,7 +214,18 @@ export default function SignupPage() {
                   <FormItem className="grid gap-2">
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                       <div className="relative">
+                        <Input type={showPassword ? 'text' : 'password'} {...field} />
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                          onClick={() => setShowPassword(prev => !prev)}
+                        >
+                          {showPassword ? <EyeOff /> : <Eye />}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                     <PasswordStrength password={field.value} />
