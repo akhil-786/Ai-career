@@ -11,10 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Chrome, Linkedin, Loader2 } from "lucide-react";
+import { Chrome, Linkedin, Loader2, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/shared/logo";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -30,7 +30,8 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/
 import { setDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Full name is required." }),
@@ -40,6 +41,51 @@ const formSchema = z.object({
     .min(8, { message: "Password must be at least 8 characters." })
     .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, { message: "Password must contain at least one letter, one number, and one special character."}),
 });
+
+const PasswordStrength = ({ password = '' }: { password?: string }) => {
+    const checks = useMemo(() => {
+        return [
+            { label: "At least 8 characters", valid: password.length >= 8 },
+            { label: "Contains a letter", valid: /[a-zA-Z]/.test(password) },
+            { label: "Contains a number", valid: /\d/.test(password) },
+            { label: "Contains a special character (@$!%*?&)", valid: /[@$!%*?&]/.test(password) }
+        ];
+    }, [password]);
+
+    const strength = checks.filter(c => c.valid).length;
+
+    if (!password) return null;
+
+    return (
+        <div className="space-y-2 mt-2">
+            <div className="flex items-center gap-2">
+                <div className="h-1.5 flex-1 bg-muted rounded-full">
+                    <div className={cn("h-full rounded-full transition-all", 
+                        strength === 0 && "w-0",
+                        strength === 1 && "w-1/4 bg-red-500",
+                        strength === 2 && "w-2/4 bg-yellow-500",
+                        strength === 3 && "w-3/4 bg-blue-500",
+                        strength === 4 && "w-full bg-green-500",
+                    )}></div>
+                </div>
+                <p className="text-xs font-medium">
+                    {strength < 2 && "Weak"}
+                    {strength === 2 && "Medium"}
+                    {strength === 3 && "Strong"}
+                    {strength === 4 && "Very Strong"}
+                </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                {checks.map(check => (
+                    <div key={check.label} className={cn("flex items-center text-xs gap-1.5", check.valid ? "text-green-600" : "text-muted-foreground")}>
+                        {check.valid ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                        {check.label}
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
 
 export default function SignupPage() {
   const { toast } = useToast();
@@ -53,7 +99,10 @@ export default function SignupPage() {
       email: "",
       password: "",
     },
+    mode: "onTouched"
   });
+
+  const password = useWatch({ control: form.control, name: 'password' });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -167,6 +216,7 @@ export default function SignupPage() {
                       <Input type="password" {...field} />
                     </FormControl>
                     <FormMessage />
+                    <PasswordStrength password={field.value} />
                   </FormItem>
                 )}
               />
