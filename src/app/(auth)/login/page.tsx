@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,6 +41,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,10 +51,49 @@ export default function LoginPage() {
     },
   });
 
+  const resendVerificationEmail = async (email: string) => {
+    // This is a bit of a workaround to send a verification email to an unverified user.
+    // We can't get the user object without logging them in first, which we don't want to do.
+    // Instead, we can temporarily use a dummy user object.
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: true,
+    };
+    try {
+        if(auth.currentUser){
+            await sendEmailVerification(auth.currentUser);
+            toast({
+                title: "Verification Email Sent",
+                description: "A new verification link has been sent to your email address.",
+            });
+        }
+    } catch (error: any) {
+        toast({
+            title: "Error Sending Email",
+            description: error.message,
+            variant: "destructive",
+        });
+    }
+  };
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      
+      if (userCredential.user && !userCredential.user.emailVerified) {
+         await auth.signOut();
+         toast({
+            title: "Email Not Verified",
+            description: "Please verify your email before logging in. A new verification link has been sent.",
+            variant: "destructive",
+         });
+         await sendEmailVerification(userCredential.user);
+         router.push('/verify-email');
+         return;
+      }
+
       toast({
         title: "Login Successful",
         description: "Welcome back!",
@@ -127,7 +167,12 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem className="grid gap-2">
-                    <FormLabel>Password</FormLabel>
+                    <div className="flex items-center">
+                        <FormLabel>Password</FormLabel>
+                        <Link href="#" className="ml-auto inline-block text-sm underline">
+                            Forgot your password?
+                        </Link>
+                    </div>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>

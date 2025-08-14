@@ -25,7 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -63,6 +63,8 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
 
+      await sendEmailVerification(user);
+
       await setDoc(doc(db, "users", user.uid), {
         name: values.name,
         email: values.email,
@@ -70,9 +72,9 @@ export default function SignupPage() {
 
       toast({
         title: "Account Created",
-        description: "We've created your account for you.",
+        description: "A verification email has been sent. Please check your inbox.",
       });
-      router.push("/dashboard");
+      router.push("/verify-email");
     } catch (error: any) {
       toast({
         title: "Signup Failed",
