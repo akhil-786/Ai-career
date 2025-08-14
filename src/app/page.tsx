@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, FileText, Bot, TrendingUp, Target, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/shared/logo";
+import { ThemeToggleButton } from "@/components/shared/theme-toggle-button";
 
 export default function Home() {
   return (
@@ -10,6 +11,7 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white dark:bg-card sticky top-0 z-50">
         <Logo />
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
+          <ThemeToggleButton />
           <Link href="/login" className="text-sm font-medium hover:underline underline-offset-4">Login</Link>
           <Button asChild>
             <Link href="/signup">Sign Up</Link>

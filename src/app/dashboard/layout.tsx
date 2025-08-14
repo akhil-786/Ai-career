@@ -5,7 +5,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, LogOut, User, Loader2, Moon, Sun } from "lucide-react";
+import { Menu, LogOut, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -21,23 +21,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
-import { useTheme } from "next-themes";
-
-function ThemeToggleButton() {
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-    >
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
-}
+import { ThemeToggleButton } from "@/components/shared/theme-toggle-button";
 
 
 function DashboardLayoutContent({
