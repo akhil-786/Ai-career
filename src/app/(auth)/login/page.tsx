@@ -26,8 +26,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithEmailAndPassword, sendEmailVerification, signInWithPopup } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -42,6 +42,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -97,6 +98,26 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogleLogin() {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+       toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      router.push("/dashboard");
+    } catch(error: any) {
+        toast({
+            title: "Google Login Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md mx-4">
@@ -111,8 +132,8 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid grid-cols-2 gap-6">
-            <Button variant="outline">
-              <Chrome className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={handleGoogleLogin} disabled={isLoading || isGoogleLoading}>
+              {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :<Chrome className="mr-2 h-4 w-4" />}
               Google
             </Button>
             <Button variant="outline">
@@ -143,6 +164,7 @@ export default function LoginPage() {
                         type="email"
                         placeholder="m@example.com"
                         {...field}
+                        disabled={isLoading || isGoogleLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -162,7 +184,7 @@ export default function LoginPage() {
                     </div>
                     <FormControl>
                       <div className="relative">
-                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
+                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isLoading || isGoogleLoading} />
                         <Button 
                           type="button" 
                           variant="ghost" 
@@ -178,7 +200,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>

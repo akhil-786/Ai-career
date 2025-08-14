@@ -25,8 +25,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { auth, db, googleProvider } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, getAdditionalUserInfo } from "firebase/auth";
 import { setDoc, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -91,6 +91,7 @@ export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -142,6 +143,36 @@ export default function SignupPage() {
     }
   }
 
+  async function handleGoogleSignUp() {
+    setIsGoogleLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const additionalInfo = getAdditionalUserInfo(result);
+
+      if (additionalInfo?.isNewUser) {
+        await setDoc(doc(db, "users", user.uid), {
+            name: user.displayName,
+            email: user.email,
+        });
+      }
+       toast({
+        title: "Account Created",
+        description: "Welcome to CareerWise AI!",
+      });
+      router.push("/dashboard");
+
+    } catch(error: any) {
+        toast({
+            title: "Google Sign-Up Failed",
+            description: error.message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsGoogleLoading(false);
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md mx-4">
@@ -156,8 +187,8 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="grid grid-cols-2 gap-6">
-            <Button variant="outline">
-              <Chrome className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={handleGoogleSignUp} disabled={isLoading || isGoogleLoading}>
+              {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
               Google
             </Button>
             <Button variant="outline">
@@ -184,7 +215,7 @@ export default function SignupPage() {
                   <FormItem className="grid gap-2">
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John Doe" {...field} />
+                      <Input placeholder="John Doe" {...field} disabled={isLoading || isGoogleLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -201,6 +232,7 @@ export default function SignupPage() {
                         type="email"
                         placeholder="m@example.com"
                         {...field}
+                         disabled={isLoading || isGoogleLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -215,7 +247,7 @@ export default function SignupPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                        <div className="relative">
-                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} />
+                        <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" {...field} disabled={isLoading || isGoogleLoading} />
                         <Button 
                           type="button" 
                           variant="ghost" 
@@ -232,7 +264,7 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Account
               </Button>
