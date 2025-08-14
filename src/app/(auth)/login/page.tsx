@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -51,29 +52,26 @@ export default function LoginPage() {
     },
   });
 
-  const resendVerificationEmail = async (email: string) => {
-    // This is a bit of a workaround to send a verification email to an unverified user.
-    // We can't get the user object without logging them in first, which we don't want to do.
-    // Instead, we can temporarily use a dummy user object.
-    const actionCodeSettings = {
-      url: `${window.location.origin}/login`,
-      handleCodeInApp: true,
-    };
-    try {
-        if(auth.currentUser){
-            await sendEmailVerification(auth.currentUser);
+  const resendVerificationEmail = async () => {
+      try {
+          if(auth.currentUser){
+            const actionCodeSettings = {
+                url: `${window.location.origin}/login`,
+                handleCodeInApp: true,
+            };
+            await sendEmailVerification(auth.currentUser, actionCodeSettings);
             toast({
                 title: "Verification Email Sent",
                 description: "A new verification link has been sent to your email address.",
             });
-        }
-    } catch (error: any) {
-        toast({
-            title: "Error Sending Email",
-            description: error.message,
-            variant: "destructive",
-        });
-    }
+          }
+      } catch (error: any) {
+          toast({
+              title: "Error Sending Email",
+              description: error.message,
+              variant: "destructive",
+          });
+      }
   };
 
 
@@ -89,7 +87,11 @@ export default function LoginPage() {
             description: "Please verify your email before logging in. A new verification link has been sent.",
             variant: "destructive",
          });
-         await sendEmailVerification(userCredential.user);
+         const actionCodeSettings = {
+            url: `${window.location.origin}/login`,
+            handleCodeInApp: true,
+         };
+         await sendEmailVerification(userCredential.user, actionCodeSettings);
          router.push('/verify-email');
          return;
       }

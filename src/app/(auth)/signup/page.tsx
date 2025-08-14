@@ -1,3 +1,4 @@
+
 "use client";
 import {
   Card,
@@ -36,7 +37,8 @@ const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z
     .string()
-    .min(6, { message: "Password must be at least 6 characters." }),
+    .min(8, { message: "Password must be at least 8 characters." })
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, { message: "Password must contain at least one letter, one number, and one special character."}),
 });
 
 export default function SignupPage() {
@@ -63,7 +65,11 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
 
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
 
       await setDoc(doc(db, "users", user.uid), {
         name: values.name,

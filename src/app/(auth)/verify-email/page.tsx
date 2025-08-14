@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -15,19 +16,45 @@ import { sendEmailVerification } from "firebase/auth";
 import { Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function VerifyEmailPage() {
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
   const router = useRouter();
 
+  // This effect will check the user's verification status periodically
+  // This is a basic implementation. For production, you might want something more robust
+  // like a WebSocket connection or only checking when the window regains focus.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          clearInterval(interval);
+          toast({
+            title: "Email Verified!",
+            description: "You can now log in.",
+          });
+          router.push("/login");
+        }
+      }
+    }, 3000); // Check every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [router, toast]);
+
+
   const handleResendEmail = async () => {
     setIsResending(true);
     const user = auth.currentUser;
     if (user) {
       try {
-        await sendEmailVerification(user);
+        const actionCodeSettings = {
+            url: `${window.location.origin}/login`,
+            handleCodeInApp: true,
+        };
+        await sendEmailVerification(user, actionCodeSettings);
         toast({
           title: "Verification Email Sent",
           description: "A new verification link has been sent to your email address.",
@@ -62,7 +89,7 @@ export default function VerifyEmailPage() {
           <CardTitle className="text-2xl">Check Your Email</CardTitle>
           <CardDescription>
             We've sent a verification link to your email address. Please click the
-            link to continue.
+            link to continue. This page will automatically redirect after you've been verified.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
